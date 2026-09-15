@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Roadmap do projeto
+    url: https://github.com/EduardoVilar23/SINAPI-Easy-ETL/blob/main/ROADMAP.md
+    about: Consulte prioridades públicas antes de abrir uma feature grande.
+  - name: Política de segurança
+    url: https://github.com/EduardoVilar23/SINAPI-Easy-ETL/blob/main/SECURITY.md
+    about: Como reportar vulnerabilidades em privado.

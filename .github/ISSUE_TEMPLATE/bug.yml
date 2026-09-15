@@ -1,0 +1,37 @@
+name: Bug
+description: Relatar um problema no ETL, CLI, Supabase ou desktop
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado pelo reporte. Para vulnerabilidades, use SECURITY.md (não este formulário).
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu?
+      description: Comportamento observado vs esperado.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Ambiente
+      description: "OS, Python, e se usou CLI ou desktop"
+      placeholder: "macOS 15 / Python 3.12 / CLI"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs ou traceback
+      render: shell

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Easy SINAPI</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+
+  <body>
+    <main class="app">
+      <header class="header">
+        <div>
+          <p class="eyebrow">Open source</p>
+          <h1>Easy SINAPI</h1>
+          <p class="subtitle">Interface local para rodar o ETL via Python (.venv)</p>
+        </div>
+        <div id="env-status" class="status status-pending">Verificando ambiente…</div>
+      </header>
+
+      <section class="panel">
+        <form id="etl-form" class="form">
+          <fieldset class="field">
+            <legend>Referência</legend>
+            <label class="radio">
+              <input type="radio" name="mode" value="current" checked />
+              Mês atual
+            </label>
+            <label class="radio">
+              <input type="radio" name="mode" value="latest" />
+              Mais recente disponível
+            </label>
+            <label class="radio">
+              <input type="radio" name="mode" value="specific" />
+              Ano / mês específicos
+            </label>
+            <div class="row specific-row" id="specific-fields" hidden>
+              <label>
+                Ano
+                <input id="year" type="number" min="2000" max="2100" placeholder="2025" />
+              </label>
+              <label>
+                Mês
+                <input id="month" type="number" min="1" max="12" placeholder="12" />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend>Formatos de saída</legend>
+            <div class="checks">
+              <label><input type="checkbox" name="format" value="json" checked /> JSON</label>
+              <label><input type="checkbox" name="format" value="csv" checked /> CSV</label>
+              <label><input type="checkbox" name="format" value="parquet" /> Parquet</label>
+              <label><input type="checkbox" name="format" value="xlsx" /> XLSX</label>
+            </div>
+          </fieldset>
+
+          <label class="toggle">
+            <input id="supabase" type="checkbox" />
+            Carregar no Supabase após processar
+          </label>
+
+          <div class="actions">
+            <button id="run-btn" type="submit">Executar ETL</button>
+            <button id="clear-btn" type="button" class="secondary">Limpar log</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel log-panel">
+        <div class="log-header">
+          <h2>Log</h2>
+          <span id="run-state" class="run-state">Idle</span>
+        </div>
+        <pre id="log" class="log" aria-live="polite"></pre>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+name: Feature
+description: Propor melhoria ou nova funcionalidade
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Verifique o ROADMAP.md antes. Features grandes: descreva o problema primeiro.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema / necessidade
+      description: Que dor isto resolve? Quem beneficia?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta
+      description: Como imagina a solução (CLI, API, desktop, docs).
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: Opcional.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Escopo
+      options:
+        - label: Mantém o core self-host utilizável sem conta paga
+        - label: Não exige expor service_role no frontend
