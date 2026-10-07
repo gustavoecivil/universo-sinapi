@@ -1,0 +1,170 @@
+name: SINAPI MG mensal
+
+on:
+  schedule:
+    - cron: "0 12 15 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  atualizar-sinapi-mg:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Executar ETL SINAPI
+        id: etl
+        shell: bash
+        run: |
+          set +e
+          python main.py --latest 2>&1 | tee etl.log
+          status=${PIPESTATUS[0]}
+          set -e
+
+          reason=""
+          if grep -Eiq '403 Client Error|status[^0-9]*403|HTTP[^0-9]*403|Forbidden' etl.log; then
+            reason="Download bloqueado pela Caixa: erro HTTP 403."
+          elif grep -Eiq 'TooManyRedirects|Muitos redirecionamentos|Loop de redirecionamento|redirecionamentos detectados' etl.log; then
+            reason="Download bloqueado pela Caixa: loop de redirecionamentos."
+          elif grep -Eiq 'Tamanho:[[:space:]]*0([.,]0+)?[[:space:]]*MB|arquivo vazio|0 bytes' etl.log; then
+            reason="Download bloqueado pela Caixa: arquivo vazio."
+          elif [ "$status" -ne 0 ]; then
+            reason="O ETL terminou com código de saída $status."
+          fi
+
+          if [ -n "$reason" ]; then
+            {
+              echo "### Falha na atualização SINAPI MG"
+              echo
+              echo "**Motivo:** $reason"
+              echo
+              echo '```text'
+              tail -n 80 etl.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "ERRO: $reason"
+            exit 1
+          fi
+
+      - name: Gerar CSVs de Minas Gerais
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import ast
+          import re
+          import pandas as pd
+
+          base = Path('data/processed')
+          refs = sorted(
+              [p for p in base.iterdir() if p.is_dir() and re.fullmatch(r'\d{4}-\d{2}', p.name)],
+              key=lambda p: p.name,
+              reverse=True,
+          ) if base.exists() else []
+
+          if not refs:
+              raise SystemExit('ERRO: nenhuma referência processada foi encontrada em data/processed.')
+
+          ref_dir = refs[0]
+          reference = ref_dir.name
+          output_dir = Path('data/mg')
+          output_dir.mkdir(parents=True, exist_ok=True)
+
+          def parse_mg(value):
+              if pd.isna(value):
+                  return None
+              try:
+                  mapping = value if isinstance(value, dict) else ast.literal_eval(str(value))
+              except (ValueError, SyntaxError):
+                  return None
+              if not isinstance(mapping, dict):
+                  return None
+              mg = mapping.get('MG')
+              if mg is None or pd.isna(mg):
+                  return None
+              return float(mg)
+
+          def build_output(specs, value_column, destination):
+              frames = []
+              for filename, desonerado in specs:
+                  path = ref_dir / filename
+                  if not path.exists():
+                      raise SystemExit(f'ERRO: arquivo esperado não encontrado: {path}')
+                  df = pd.read_csv(path, encoding='utf-8-sig')
+                  required = {'codigo', 'descricao', 'unidade', 'referencia', value_column}
+                  missing = required.difference(df.columns)
+                  if missing:
+                      raise SystemExit(f'ERRO: colunas ausentes em {path}: {sorted(missing)}')
+
+                  out = df[['codigo', 'descricao', 'unidade', 'referencia', value_column]].copy()
+                  out['preco_mediano'] = out[value_column].map(parse_mg)
+                  out = out[out['preco_mediano'].notna()].copy()
+                  out['codigo'] = pd.to_numeric(out['codigo'], errors='coerce').astype('Int64')
+                  out['mes_referencia'] = out['referencia'].fillna(reference).astype(str)
+                  out['desonerado'] = bool(desonerado)
+                  out = out[['codigo', 'descricao', 'unidade', 'preco_mediano', 'mes_referencia', 'desonerado']]
+                  frames.append(out)
+
+              result = pd.concat(frames, ignore_index=True)
+              result = result.sort_values(['codigo', 'desonerado'], kind='stable', na_position='last')
+              result.to_csv(destination, index=False, encoding='utf-8', sep=',', decimal='.', lineterminator='\n')
+              return len(result)
+
+          insumos = build_output(
+              [('isd.csv', False), ('icd.csv', True)],
+              'precos',
+              output_dir / 'insumos_mg.csv',
+          )
+          composicoes = build_output(
+              [('csd.csv', False), ('ccd.csv', True)],
+              'custos',
+              output_dir / 'composicoes_mg.csv',
+          )
+
+          env_file = Path(__import__('os').environ['GITHUB_ENV'])
+          with env_file.open('a', encoding='utf-8') as f:
+              f.write(f'SINAPI_REFERENCE={reference}\n')
+
+          summary = Path(__import__('os').environ['GITHUB_STEP_SUMMARY'])
+          with summary.open('a', encoding='utf-8') as f:
+              f.write('### SINAPI MG atualizado\n\n')
+              f.write(f'**Referência:** {reference}\n\n')
+              f.write(f'**insumos_mg.csv:** {insumos} linhas\n\n')
+              f.write(f'**composicoes_mg.csv:** {composicoes} linhas\n')
+
+          print(f'Referência: {reference}')
+          print(f'insumos_mg.csv: {insumos} linhas')
+          print(f'composicoes_mg.csv: {composicoes} linhas')
+          PY
+
+      - name: Commitar e publicar atualização
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data/mg/insumos_mg.csv data/mg/composicoes_mg.csv
+
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração nos CSVs para ${SINAPI_REFERENCE}." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          git commit -m "SINAPI MG atualizado ${SINAPI_REFERENCE}"
+          git push origin HEAD:main
