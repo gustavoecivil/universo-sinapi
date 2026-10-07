@@ -1,0 +1,55 @@
+name: Casar SKUs Universo com SINAPI
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/casar_skus_v2.py
+      - data/universo/skus_universo_eletrico.csv
+      - .github/workflows/casar-skus.yml
+  workflow_run:
+    workflows: ["SINAPI MG mensal"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  casar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy scikit-learn rapidfuzz
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install sentence-transformers
+
+      - name: Guardar modelo em cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-paraphrase-multilingual-mpnet-base-v2
+
+      - name: Rodar casamento
+        run: python scripts/casar_skus_v2.py
+
+      - name: Publicar resultado
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/universo/casamento_sinapi_v2.csv data/universo/casamento_v2_log.txt
+          git diff --cached --quiet || git commit -m "Casamento SKUs x SINAPI v2 atualizado"
+          git pull --rebase origin main
+          git push origin HEAD:main
