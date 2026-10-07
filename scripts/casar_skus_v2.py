@@ -97,7 +97,7 @@ def principal():
     tot = sum(pesos.values()); pesos = {k: v/tot for k, v in pesos.items()}
     log('pesos efetivos:', {k: round(v,2) for k, v in pesos.items()})
 
-    rows = []
+    rows = []; comp = []
     for i, r in sk.iterrows():
         pw = palavras(r['n']); wtot = sum(idf.get(t,1) for t in pw) or 1
         sn = nums(r['n'])
@@ -117,6 +117,11 @@ def principal():
             head = pw[0] if pw else None
             if head and head not in toks(cat.n.iloc[j]).split()[:3]: sc *= 0.85
             pontos.append((sc, j, hit))
+            comp.append({'sku':r['SKU (REF)'],'codigo':cat.codigo.iloc[j],'descricao':cat.descricao.iloc[j],
+              'tf':round(float(cos[i][j]),4),'emb':'' if emb is None else round(float(emb[i][j]),4),
+              'lex':'' if lex is None else round(float(lex[i][j]),4),'cont':round(cont,4),
+              'hit':'' if hit is None else round(hit,3),'head_ok':int(not(head and head not in toks(cat.n.iloc[j]).split()[:3])),
+              'score':round(sc,4)})
         pontos.sort(reverse=True)
         (s1, j1, h1), (s2, j2, _), (s3, j3, _) = pontos[0], pontos[1], pontos[2]
         folga = s1 - s2
@@ -135,6 +140,7 @@ def principal():
           'alt3_codigo':cat.codigo.iloc[j3],'alt3_descricao':cat.descricao.iloc[j3],'alt3_score':round(s3,3),
           'url':r['URL']})
     out = pd.DataFrame(rows)
+    pd.DataFrame(comp).to_csv(OUT.replace('.csv','_cand.csv'), index=False, encoding='utf-8-sig')
     out.to_csv(OUT, index=False, encoding='utf-8-sig')
     log('distribuicao:', out.nivel.value_counts().to_dict())
     log(f'tempo total {time.time()-t0:.0f}s')
