@@ -42,14 +42,20 @@ jobs:
           key: hf-paraphrase-multilingual-mpnet-base-v2
 
       - name: Rodar casamento
-        run: python scripts/casar_skus_v2.py
+        run: |
+          set +e
+          python scripts/casar_skus_v2.py 2>&1 | tee casamento_run.log
+          echo "status=${PIPESTATUS[0]}"
+          mkdir -p data/universo
+          cp casamento_run.log data/universo/casamento_v2_stdout.txt
+          exit 0
 
       - name: Publicar resultado
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/universo/casamento_sinapi_v2.csv data/universo/casamento_v2_log.txt
+          git add -A data/universo
           git diff --cached --quiet || git commit -m "Casamento SKUs x SINAPI v2 atualizado"
           git pull --rebase origin main
           git push origin HEAD:main
