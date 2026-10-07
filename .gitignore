@@ -26,7 +26,9 @@ wheels/
 *.egg
 
 # Dados
-data/
+data/*
+!data/mg
+!data/universo
 *.zip
 *.xlsx
 *.xls
@@ -51,3 +53,8 @@ Thumbs.db
 desktop/dist/
 desktop/node_modules/
 desktop/src-tauri/target/
+# Dados do projeto Universo (versionados de proposito)
+!data/universo/
+!data/universo/**
+!data/mg/
+!data/mg/**
