@@ -1,8 +1,8 @@
 SKUs: 1321  insumos SINAPI: 4419
 Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
-Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3594.38it/s]
-embeddings ok, modelo paraphrase-multilingual-mpnet-base-v2 (210s)
-rapidfuzz ok (215s)
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3779.46it/s]
+embeddings ok, modelo paraphrase-multilingual-mpnet-base-v2 (203s)
+rapidfuzz ok (207s)
 pesos efetivos: {'emb': 0.45, 'lex': 0.2, 'tf': 0.35}
 distribuicao: {'sem_par': 981, 'baixa': 310, 'media': 27, 'alta': 3}
-tempo total 217s
+tempo total 216s

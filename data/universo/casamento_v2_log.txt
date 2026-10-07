@@ -1,6 +1,6 @@
 SKUs: 1321  insumos SINAPI: 4419
-embeddings ok, modelo paraphrase-multilingual-mpnet-base-v2 (210s)
-rapidfuzz ok (215s)
+embeddings ok, modelo paraphrase-multilingual-mpnet-base-v2 (203s)
+rapidfuzz ok (207s)
 pesos efetivos: {'emb': 0.45, 'lex': 0.2, 'tf': 0.35}
 distribuicao: {'sem_par': 981, 'baixa': 310, 'media': 27, 'alta': 3}
-tempo total 217s
+tempo total 216s
