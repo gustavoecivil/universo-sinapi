@@ -10,6 +10,8 @@ import re, sys, time, traceback, unicodedata
 from pathlib import Path
 import numpy as np
 import pandas as pd
+sys.path.insert(0, str(Path(__file__).parent))
+import regras as R
 
 SKUS = 'data/universo/skus_universo_eletrico.csv'
 INS = 'data/mg/insumos_mg.csv'
@@ -19,8 +21,8 @@ MODELO = 'paraphrase-multilingual-mpnet-base-v2'
 
 # Pesos e limites (ponto de partida; calibrados depois contra amostra rotulada)
 W_EMB, W_LEX, W_TFIDF = 0.45, 0.20, 0.35
-LIM_ACEITA, LIM_REVISA, LIM_FAMILIA = 0.80, 0.62, 0.48
-FOLGA_MIN = 0.03
+LIM_ACEITA, LIM_REVISA, LIM_FAMILIA = 0.60, 0.50, 0.40  # calibrados na amostra rotulada (gabarito_amostra.csv)
+FOLGA_MIN = 0.0
 
 logs = []
 def log(*a):
@@ -60,9 +62,9 @@ def principal():
     de = ins[ins.desonerado.astype(str)=='True'].drop_duplicates('codigo').set_index('codigo')
     cat = nd[['codigo','descricao','unidade','preco_mediano','mes_referencia']].reset_index(drop=True)
     cat['preco_desonerado'] = cat.codigo.map(de.preco_mediano)
-    cat['n'] = cat.descricao.map(norm)
+    cat['n'] = cat.descricao.map(lambda x: R.pre(norm(x)))
     sk = pd.read_csv(SKUS, sep=';', encoding='utf-8-sig', dtype=str).fillna('')
-    sk['n'] = sk['Produto'].map(norm)
+    sk['n'] = sk['Produto'].map(lambda x: R.pre(norm(x)))
     log(f'SKUs: {len(sk)}  insumos SINAPI: {len(cat)}')
 
     # 1) significado
@@ -100,7 +102,6 @@ def principal():
     rows = []; comp = []
     for i, r in sk.iterrows():
         pw = palavras(r['n']); wtot = sum(idf.get(t,1) for t in pw) or 1
-        sn = nums(r['n'])
         base = pesos['tf']*cos[i]
         if emb is not None: base = base + pesos['emb']*emb[i]
         if lex is not None: base = base + pesos['lex']*lex[i]
@@ -109,11 +110,11 @@ def principal():
         for j in pre:
             cont = sum(idf.get(t,1) for t in pw if t in ctok[j])/wtot
             sc = 0.8*base[j] + 0.2*cont
-            hit = None
-            if sn:
-                hit = len(sn & cnums[j])/len(sn)
+            hit = R.hit_medidas(r['n'], cat.n.iloc[j])
+            if hit is not None:
                 sc *= (0.5 + 0.5*hit)
                 if hit == 0: sc *= 0.6
+            sc *= R.ajuste_tipo(r['n'], cat.n.iloc[j])
             head = pw[0] if pw else None
             if head and head not in toks(cat.n.iloc[j]).split()[:3]: sc *= 0.85
             pontos.append((sc, j, hit))

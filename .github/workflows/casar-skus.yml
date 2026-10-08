@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - scripts/casar_skus_v2.py
+      - scripts/regras.py
       - data/universo/skus_universo_eletrico.csv
       - .github/workflows/casar-skus.yml
   workflow_run:
